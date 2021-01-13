@@ -126,8 +126,8 @@ func applicationOAuth2PermissionResourceCreateUpdate(ctx context.Context, d *sch
 
 	id := parse.NewOAuth2PermissionID(objectId, *permission.ID)
 
-	tf.LockByName(resourceApplicationName, id.ObjectId)
-	defer tf.UnlockByName(resourceApplicationName, id.ObjectId)
+	tf.LockByName(applicationResourceName, id.ObjectId)
+	defer tf.UnlockByName(applicationResourceName, id.ObjectId)
 
 	// ensure the Application Object exists
 	app, err := client.Get(ctx, id.ObjectId)
@@ -249,8 +249,8 @@ func applicationOAuth2PermissionResourceDelete(ctx context.Context, d *schema.Re
 		return tf.ErrorDiagPathF(err, "id", "Parsing OAuth2 Permission ID %q", d.Id())
 	}
 
-	tf.LockByName(resourceApplicationName, id.ObjectId)
-	defer tf.UnlockByName(resourceApplicationName, id.ObjectId)
+	tf.LockByName(applicationResourceName, id.ObjectId)
+	defer tf.UnlockByName(applicationResourceName, id.ObjectId)
 
 	// ensure the parent Application exists
 	app, err := client.Get(ctx, id.ObjectId)
