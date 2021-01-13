@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/go-azure-helpers/sender"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/meta"
 	"github.com/manicminer/hamilton/auth"
+	"github.com/manicminer/hamilton/base"
 
 	"github.com/terraform-providers/terraform-provider-azuread/version"
 )
@@ -30,27 +31,29 @@ type ClientOptions struct {
 	SkipProviderReg bool
 }
 
-func (o ClientOptions) ConfigureClient(c *autorest.Client, authorizer autorest.Authorizer) {
-	setUserAgent(c, o.TerraformVersion, o.PartnerID)
+func (o ClientOptions) ConfigureClient(c *base.Client, ar *autorest.Client) {
+	c.Authorizer = o.MsGraphAuthorizer
+	c.UserAgent = o.userAgent(c.UserAgent)
 
-	c.Authorizer = authorizer
-	c.Sender = sender.BuildSender("AzureAD")
+	ar.Authorizer = o.AadGraphAuthorizer
+	ar.Sender = sender.BuildSender("AzureAD")
+	ar.UserAgent = o.userAgent(ar.UserAgent)
 }
 
-func setUserAgent(client *autorest.Client, tfVersion, partnerID string) {
-	tfUserAgent := fmt.Sprintf("HashiCorp Terraform/%s (+https://www.terraform.io) Terraform Plugin SDK/%s", tfVersion, meta.SDKVersionString())
-
+func (o ClientOptions) userAgent(sdkUserAgent string) (userAgent string) {
+	tfUserAgent := fmt.Sprintf("HashiCorp Terraform/%s (+https://www.terraform.io) Terraform Plugin SDK/%s", o.TerraformVersion, meta.SDKVersionString())
 	providerUserAgent := fmt.Sprintf("%s terraform-provider-azuread/%s", tfUserAgent, version.ProviderVersion)
-	client.UserAgent = strings.TrimSpace(fmt.Sprintf("%s %s", client.UserAgent, providerUserAgent))
+	userAgent = strings.TrimSpace(fmt.Sprintf("%s %s", sdkUserAgent, providerUserAgent))
 
 	// append the CloudShell version to the user agent if it exists
 	if azureAgent := os.Getenv("AZURE_HTTP_USER_AGENT"); azureAgent != "" {
-		client.UserAgent = fmt.Sprintf("%s %s", client.UserAgent, azureAgent)
+		userAgent = fmt.Sprintf("%s %s", userAgent, azureAgent)
 	}
 
-	if partnerID != "" {
-		client.UserAgent = fmt.Sprintf("%s pid-%s", client.UserAgent, partnerID)
+	if o.PartnerID != "" {
+		userAgent = fmt.Sprintf("%s pid-%s", userAgent, o.PartnerID)
 	}
 
-	log.Printf("[DEBUG] AzureAD Client User Agent: %s\n", client.UserAgent)
+	log.Printf("[DEBUG] User Agent: %s\n", userAgent)
+	return
 }
